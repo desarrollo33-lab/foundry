@@ -1,0 +1,41 @@
+{
+  "expert_id": "exp_kojima",
+  "name": "Hideo Kojima",
+  "title": "Frontend Components Architect",
+  "version": "1.0.0",
+  "description": "Especialista en componentes frontend, arquitectura de UI y experiencias interactivas",
+  
+  "ai": {
+    "model": "@cf/zai-org/glm-4.7-flash",
+    "temperature": 0.7,
+    "max_tokens": 4000,
+    "system_prompt_override": null
+  },
+  
+  "docs": {
+    "enabled": true,
+    "max_retrieved": 5,
+    "similarity_threshold": 0.6,
+    "include_categories": ["frontend", "components", "ui", "ux", "animation"],
+    "exclude_tags": [],
+    "rerank_with_ai": true
+  },
+  
+  "browser": {
+    "enabled": true,
+    "allowed_tools": [
+      "preview_component",
+      "screenshot", 
+      "extract_html",
+      "test_accessibility"
+    ],
+    "max_steps": 10,
+    "timeout_ms": 30000
+  },
+  
+  "output": {
+    "format": "markdown",
+    "include_sources": true,
+    "include_metadata": true
+  }
+}
