@@ -8,5 +8,11 @@ export default defineConfig({
   }),
   vite: {
     compatibilityDate: '2024-11-08',
+    build: {
+      target: 'esnext',
+    },
+    ssr: {
+      external: ['node:path', 'node:fs', 'node:fs/promises', 'node:url', 'node:crypto'],
+    },
   },
 });

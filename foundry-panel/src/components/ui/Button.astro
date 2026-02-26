@@ -1,0 +1,45 @@
+---
+import { cn } from '@lib/utils/cn'
+
+interface Props {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+  size?: 'sm' | 'md' | 'lg'
+  href?: string
+  class?: string
+  type?: 'button' | 'submit' | 'reset'
+}
+
+const {
+  variant = 'secondary',
+  size = 'md',
+  href,
+  class: className,
+  type = 'button',
+  ...props
+} = Astro.props
+
+const variants = {
+  primary: 'btn primary',
+  secondary: 'btn',
+  ghost: 'btn ghost',
+  danger: 'btn danger',
+}
+
+const sizes = {
+  sm: 'text-sm px-3 py-1',
+  md: 'px-4 py-2',
+  lg: 'px-6 py-3 text-lg',
+}
+
+const classes = cn(variants[variant], sizes[size], className)
+---
+
+{href ? (
+  <a href={href} class={classes}>
+    <slot />
+  </a>
+) : (
+  <button type={type} class={classes} {...props}>
+    <slot />
+  </button>
+)}

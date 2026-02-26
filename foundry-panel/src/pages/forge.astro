@@ -1,5 +1,6 @@
 ---
 // src/pages/forge.astro - The Forge (Workflow Management)
+import Layout from '../layouts/Layout.astro';
 import { MCP_URL, FALLBACK_EXPERTS, FALLBACK_WORKFLOWS } from '../config';
 
 let experts: any[] = FALLBACK_EXPERTS;
@@ -48,146 +49,54 @@ if (method === 'POST') {
 }
 ---
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FOUNDRY // FORGE</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-  <style>
-    :root { --bg: #12151a; --bg-card: #1a1f26; --terminal-green: #4ade80; --terminal-green-dim: rgba(74, 222, 128, 0.2); --terminal-green-subtle: rgba(74, 222, 128, 0.1); --text: #e2e8f0; --text-dim: #94a3b8; --text-bright: #f1f5f9; --border: #2d3748; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; }
-    body { font-family: 'Share Tech Mono', 'JetBrains Mono', monospace; background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; overflow: hidden; }
-    body::before { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1) 1px, transparent 1px, transparent 2px); pointer-events: none; z-index: 1000; }
-    .layout { display: grid; grid-template-columns: 220px 1fr; height: 100vh; }
-    .sidebar { background: var(--bg-card); border-right: 1px solid var(--border); padding: 1.5rem 1rem; display: flex; flex-direction: column; }
-    .brand { padding-bottom: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
-    .brand h1 { font-size: 1.25rem; font-weight: 400; color: var(--terminal-green); letter-spacing: 0.2em; }
-    .brand .version { font-size: 0.65rem; color: var(--text-dim); margin-top: 0.25rem; }
-    .nav { display: flex; flex-direction: column; gap: 0.25rem; }
-    .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; color: var(--text-dim); text-decoration: none; border: 1px solid transparent; transition: all 0.15s; }
-    .nav-item:hover { color: var(--text-bright); background: var(--bg); }
-    .nav-item.active { color: var(--terminal-green); background: var(--terminal-green-subtle); }
-    .nav-icon { font-size: 0.9rem; opacity: 0.7; width: 16px; text-align: center; }
-    .nav-label { font-size: 0.75rem; letter-spacing: 0.1em; }
-    .sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.65rem; color: var(--text-dim); }
-    .status-line { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
-    .status-dot { width: 6px; height: 6px; background: var(--terminal-green); border-radius: 50%; animation: blink 2s infinite; }
-    @keyframes blink { 0%, 50%, 100% { opacity: 1; } 25%, 75% { opacity: 0.3; } }
-    .main { padding: 1.5rem 2rem; overflow-y: auto; }
-    .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
-    .header-title { font-size: 1rem; color: var(--text-bright); letter-spacing: 0.15em; }
-    .header-title span { color: var(--terminal-green); }
-    .filters { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-    .filter-btn { padding: 0.4rem 0.75rem; font-size: 0.65rem; font-family: inherit; letter-spacing: 0.1em; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); text-decoration: none; transition: all 0.15s; }
-    .filter-btn:hover, .filter-btn.active { border-color: var(--terminal-green); color: var(--terminal-green); }
-    .filter-btn.active { background: var(--terminal-green-subtle); }
-    .workflow-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
-    .workflow { background: var(--bg-card); padding: 1rem; border: 1px solid var(--border); }
-    .workflow-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-    .workflow-name { font-size: 0.9rem; color: var(--text-bright); }
-    .workflow-badges { display: flex; gap: 0.35rem; }
-    .badge { font-size: 0.55rem; padding: 0.15rem 0.35rem; letter-spacing: 0.05em; }
-    .badge.input { background: #1e3a5f; color: #93c5fd; }
-    .badge.output { background: #166534; color: #86efac; }
-    .workflow-expert { font-size: 0.65rem; color: var(--terminal-green); margin-bottom: 0.5rem; }
-    .workflow-desc { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.75rem; }
-    .workflow-prompt { font-size: 0.6rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; background: var(--bg); padding: 0.5rem; border-left: 2px solid var(--border); max-height: 50px; overflow: hidden; }
-    .workflow-endpoint { font-size: 0.6rem; color: var(--text-dim); margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
-    .workflow-endpoint code { color: var(--terminal-green); }
-    .workflow-actions { margin-top: 0.75rem; }
-    .btn { padding: 0.4rem 0.75rem; font-size: 0.65rem; font-family: inherit; letter-spacing: 0.1em; background: transparent; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; transition: all 0.15s; }
-    .btn:hover { border-color: var(--terminal-green); color: var(--terminal-green); }
-    .btn.danger:hover { border-color: #f87171; color: #f87171; }
-    .btn.primary { background: var(--terminal-green-subtle); border-color: var(--terminal-green-dim); color: var(--terminal-green); }
-    .form-toggle { margin-bottom: 1.5rem; }
-    .form-panel { background: var(--bg-card); border: 1px solid var(--border); padding: 1.5rem; display: none; }
-    .form-panel.active { display: block; }
-    .form-title { font-size: 0.75rem; letter-spacing: 0.15em; color: var(--terminal-green); margin-bottom: 1rem; }
-    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-    .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
-    .form-group.full { grid-column: span 2; }
-    .form-group label { font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em; }
-    .form-group input, .form-group select, .form-group textarea { background: var(--bg); border: 1px solid var(--border); padding: 0.6rem; color: var(--text); font-family: inherit; font-size: 0.8rem; }
-    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--terminal-green); }
-    .form-group textarea { min-height: 80px; resize: vertical; }
-    .form-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
-    @media (max-width: 900px) {
-      .layout { grid-template-columns: 1fr; }
-      .sidebar { position: fixed; bottom: 0; left: 0; right: 0; flex-direction: row; padding: 0.75rem; border-right: none; border-top: 1px solid var(--border); z-index: 100; }
-      .brand, .sidebar-footer { display: none; }
-      .nav { flex-direction: row; gap: 0; }
-      .nav-item { flex-direction: column; padding: 0.5rem; gap: 0.2rem; }
-      .nav-label { font-size: 0.55rem; }
-      .main { padding-bottom: 80px; }
-      .form-grid { grid-template-columns: 1fr; }
-      .form-group.full { grid-column: span 1; }
-    }
-  </style>
-</head>
-<body>
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="brand"><h1>FOUNDRY</h1><div class="version">v1.1.0 // TERMINAL</div></div>
-      <nav class="nav">
-        <a href="/" class="nav-item"><span class="nav-icon">▸</span><span class="nav-label">HORIZON</span></a>
-        <a href="/guild" class="nav-item"><span class="nav-icon">▣</span><span class="nav-label">GUILD</span></a>
-        <a href="/forge" class="nav-item active"><span class="nav-icon">⚙</span><span class="nav-label">FORGE</span></a>
-        <a href="/void" class="nav-item"><span class="nav-icon">▦</span><span class="nav-label">VOID</span></a>
-      </nav>
-      <div class="sidebar-footer"><div>SYSTEM ONLINE</div><div class="status-line"><span class="status-dot"></span><span>MCP ACTIVE</span></div></div>
-    </aside>
-    
-    <main class="main">
-      <header class="header">
-        <h2 class="header-title"><span>//</span> THE FORGE</h2>
-        <button class="btn primary" onclick="toggleForm()">+ NEW BLUEPRINT</button>
-      </header>
-      
-      <div class="filters">
-        <a href="/forge" class={`filter-btn ${!selectedExpert ? 'active' : ''}`}>[ALL]</a>
-        {experts.map((exp: any) => (<a href={`/forge?expert=${exp.slug}`} class={`filter-btn ${selectedExpert === exp.slug ? 'active' : ''}`}>{exp.name}</a>))}
-      </div>
-      
-      <div class="form-toggle">
-        <div id="formPanel" class="form-panel">
-          <div class="form-title">// NEW WORKFLOW BLUEPRINT</div>
-          <form method="POST">
-            <input type="hidden" name="_action" value="create_workflow"/>
-            <div class="form-grid">
-              <div class="form-group"><label>EXPERT</label><select name="expert_id" required><option value="">-- SELECT --</option>{experts.map((exp: any) => (<option value={exp.slug}>{exp.name}</option>))}</select></div>
-              <div class="form-group"><label>NAME</label><input type="text" name="name" required placeholder="e.g. Code Review"/></div>
-              <div class="form-group full"><label>DESCRIPTION</label><input type="text" name="description" placeholder="What this workflow does"/></div>
-              <div class="form-group full"><label>PROMPT TEMPLATE</label><textarea name="prompt_template" required placeholder="Use {input} for user input..."></textarea></div>
-              <div class="form-group"><label>INPUT TYPE</label><select name="input_type"><option value="text">text</option><option value="code">code</option><option value="audit">audit</option><option value="file">file</option></select></div>
-              <div class="form-group"><label>OUTPUT TYPE</label><select name="output_type"><option value="code">code</option><option value="audit">audit</option><option value="brief">brief</option><option value="report">report</option></select></div>
-              <div class="form-actions"><button type="submit" class="btn primary">CREATE</button><button type="button" class="btn" onclick="toggleForm()">CANCEL</button></div>
-            </div>
-          </form>
-        </div>
-      </div>
-      
-      <div class="workflow-grid">
-        {workflows.map((wf: any) => (
-          <article class="workflow">
-            <div class="workflow-header">
-              <div class="workflow-name">{wf.name}</div>
-              <div class="workflow-badges"><span class="badge input">{wf.input_type}</span><span class="badge output">→ {wf.output_type}</span></div>
-            </div>
-            <div class="workflow-expert">ARCHITECT: {wf.expert_name}</div>
-            <div class="workflow-desc">{wf.description || 'No description'}</div>
-            <div class="workflow-prompt">{wf.prompt_template}</div>
-            <div class="workflow-endpoint">/workflow/{wf.id}</div>
-            <div class="workflow-actions">
-              <form method="POST"><input type="hidden" name="_action" value="delete_workflow"/><input type="hidden" name="workflow_id" value={wf.id}/<button type="submit" class="btn danger">DELETE</button></form>
-            </div>
-          </article>
-        ))}
-      </div>
-    </main>
+<Layout title="FORGE" activePage="forge">
+  <header class="header">
+    <h2 class="header-title"><span>//</span> THE FORGE</h2>
+    <button class="btn primary" onclick="toggleForm()">+ NEW BLUEPRINT</button>
+  </header>
+  
+  <div class="filters">
+    <a href="/forge" class={`filter-btn ${!selectedExpert ? 'active' : ''}`}>[ALL]</a>
+    {experts.map((exp: any) => (
+      <a href={`/forge?expert=${exp.slug}`} class={`filter-btn ${selectedExpert === exp.slug ? 'active' : ''}`}>{exp.name}</a>
+    ))}
   </div>
-  <script>function toggleForm() { document.getElementById('formPanel').classList.toggle('active'); }</script>
-</body>
-</html>
+  
+  <div class="form-toggle">
+    <div id="formPanel" class="form-panel">
+      <div class="form-title">// NEW WORKFLOW BLUEPRINT</div>
+      <form method="POST">
+        <input type="hidden" name="_action" value="create_workflow"/>
+        <div class="form-grid">
+          <div class="form-group"><label>EXPERT</label><select name="expert_id" required><option value="">-- SELECT --</option>{experts.map((exp: any) => (<option value={exp.slug}>{exp.name}</option>))}</select></div>
+          <div class="form-group"><label>NAME</label><input type="text" name="name" required placeholder="e.g. Code Review"/></div>
+          <div class="form-group full"><label>DESCRIPTION</label><input type="text" name="description" placeholder="What this workflow does"/></div>
+          <div class="form-group full"><label>PROMPT TEMPLATE</label><textarea name="prompt_template" required placeholder="Use {input} for user input..."></textarea></div>
+          <div class="form-group"><label>INPUT TYPE</label><select name="input_type"><option value="text">text</option><option value="code">code</option><option value="audit">audit</option><option value="file">file</option></select></div>
+          <div class="form-group"><label>OUTPUT TYPE</label><select name="output_type"><option value="code">code</option><option value="audit">audit</option><option value="brief">brief</option><option value="report">report</option></select></div>
+          <div class="form-actions"><button type="submit" class="btn primary">CREATE</button><button type="button" class="btn" onclick="toggleForm()">CANCEL</button></div>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <div class="workflow-grid">
+    {workflows.map((wf: any) => (
+      <article class="workflow">
+        <div class="workflow-header">
+          <div class="workflow-name">{wf.name}</div>
+          <div class="workflow-badges"><span class="badge input">{wf.input_type}</span><span class="badge output">→ {wf.output_type}</span></div>
+        </div>
+        <div class="workflow-expert">ARCHITECT: {wf.expert_name}</div>
+        <div class="workflow-desc">{wf.description || 'No description'}</div>
+        <div class="workflow-prompt">{wf.prompt_template}</div>
+        <div class="workflow-endpoint">/workflow/{wf.id}</div>
+        <div class="workflow-actions">
+          <form method="POST"><input type="hidden" name="_action" value="delete_workflow"/><input type="hidden" name="workflow_id" value={wf.id}/><button type="submit" class="btn danger">DELETE</button></form>
+        </div>
+      </article>
+    ))}
+  </div>
+</Layout>
+
+<script>function toggleForm() { document.getElementById('formPanel').classList.toggle('active'); }</script>
