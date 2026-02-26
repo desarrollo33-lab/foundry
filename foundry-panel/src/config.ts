@@ -5,7 +5,7 @@
 // =============================================================================
 
 // MCP Server URLs - Override with environment variables in production
-const MCP_BASE_URL = import.meta.env.MCP_URL || 'https://foundry-mcp.oficinadesarrollo33.workers.dev';
+const MCP_BASE_URL = import.meta.env.MCP_URL || 'https://foundry-mcp-production.oficinadesarrollo33.workers.dev';
 
 // Fallback data when MCP is not available
 export const FALLBACK_EXPERTS = [

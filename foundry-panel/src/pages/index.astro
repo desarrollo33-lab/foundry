@@ -24,42 +24,54 @@ try {
     <div class="header-meta">{new Date().toISOString().slice(0,19).replace('T', ' ')} UTC</div>
   </header>
   
-  <div class="stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem;">
-    <div class="stat" style="background:var(--bg-card);padding:1rem;border:1px solid var(--border)"><div class="stat-value" style="font-size:1.5rem;color:var(--terminal-green)">{experts.length}</div><div class="stat-label" style="font-size:0.65rem;color:var(--text-dim);letter-spacing:0.15em;margin-top:0.25rem">ARCHITECTS</div></div>
-    <div class="stat" style="background:var(--bg-card);padding:1rem;border:1px solid var(--border)"><div class="stat-value" style="font-size:1.5rem;color:var(--terminal-green)">{workflows?.length || 0}</div><div class="stat-label" style="font-size:0.65rem;color:var(--text-dim);letter-spacing:0.15em;margin-top:0.25rem">BLUEPRINTS</div></div>
-    <div class="stat" style="background:var(--bg-card);padding:1rem;border:1px solid var(--border)"><div class="stat-value" style="font-size:1.5rem;color:var(--terminal-green)">{projectsCount}</div><div class="stat-label" style="font-size:0.65rem;color:var(--text-dim);letter-spacing:0.15em;margin-top:0.25rem">PROJECTS</div></div>
-    <div class="stat" style="background:var(--bg-card);padding:1rem;border:1px solid var(--border)"><div class="stat-value" style="font-size:1.5rem;color:#60a5fa">OK</div><div class="stat-label" style="font-size:0.65rem;color:var(--text-dim);letter-spacing:0.15em;margin-top:0.25rem">STATUS</div></div>
+  <div class="stats">
+    <div class="stat"><div class="stat-value">{experts.length}</div><div class="stat-label">ARCHITECTS</div></div>
+    <div class="stat"><div class="stat-value">{workflows?.length || 0}</div><div class="stat-label">BLUEPRINTS</div></div>
+    <div class="stat"><div class="stat-value">{projectsCount}</div><div class="stat-label">PROJECTS</div></div>
+    <div class="stat"><div class="stat-value blue">OK</div><div class="stat-label">STATUS</div></div>
   </div>
   
   <section class="section">
-    <div class="section-header"><span class="section-title">// THE GUILD</span><span class="section-count">[{experts.length}]</span></div>
+    <div class="section-header">
+      <span class="section-title">// THE GUILD</span>
+      <span class="section-count">[{experts.length}]</span>
+    </div>
     <div class="expert-grid">
       {experts.map((expert: any) => (
         <article class="expert">
           <div class="expert-header">
-            <div class="expert-avatar" style={`color:${expert.color};border-color:${expert.color}80`}>
-              <img src={`/images/${expert.slug}.jpg`} alt={expert.name} onerror="this.style.display='none';this.parentElement.textContent=this.parentElement.textContent.trim()" />
-              {expert.name.charAt(0)}
+            <div class="expert-avatar" style={`border-color: ${expert.color}`}>
+              <img src={`/images/${expert.slug}.jpg`} alt={expert.name} onerror="this.style.display='none'" />
+              <span style={`color: ${expert.color}`}>{expert.name.charAt(0)}</span>
             </div>
-            <div class="expert-info"><div class="expert-name">{expert.name}</div><div class="expert-title">{expert.title}</div></div>
+            <div class="expert-info">
+              <div class="expert-name">{expert.name}</div>
+              <div class="expert-title">{expert.title}</div>
+            </div>
           </div>
           <div class="expert-philosophy">"{expert.philosophy}"</div>
           <div class="expert-endpoint">/ai/{expert.slug}</div>
-          <div class="expert-actions"><a href="/guild" class="btn">VIEW</a><a href={`/forge?expert=${expert.slug}`} class="btn">WFS</a></div>
+          <div class="expert-actions">
+            <a href="/guild" class="btn">VIEW</a>
+            <a href={`/forge?expert=${expert.slug}`} class="btn">WFS</a>
+          </div>
         </article>
       ))}
     </div>
   </section>
   
   <section class="section">
-    <div class="section-header"><span class="section-title">// ENDPOINTS</span><span class="section-count">[6]</span></div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.75rem">
-      <div style="background:var(--bg-card);padding:0.6rem 0.75rem;border:1px solid var(--border);display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.6rem;font-weight:500;padding:0.15rem 0.35rem;background:#166534;color:#86efac">GET</span><span style="font-size:0.7rem;font-family:'JetBrains Mono'">/experts</span></div>
-      <div style="background:var(--bg-card);padding:0.6rem 0.75rem;border:1px solid var(--border);display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.6rem;font-weight:500;padding:0.15rem 0.35rem;background:#166534;color:#86efac">GET</span><span style="font-size:0.7rem;font-family:'JetBrains Mono'">/experts/:slug</span></div>
-      <div style="background:var(--bg-card);padding:0.6rem 0.75rem;border:1px solid var(--border);display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.6rem;font-weight:500;padding:0.15rem 0.35rem;background:#1e40af;color:#93c5fd">POST</span><span style="font-size:0.7rem;font-family:'JetBrains Mono'">/ai/:expert</span></div>
-      <div style="background:var(--bg-card);padding:0.6rem 0.75rem;border:1px solid var(--border);display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.6rem;font-weight:500;padding:0.15rem 0.35rem;background:#1e40af;color:#93c5fd">POST</span><span style="font-size:0.7rem;font-family:'JetBrains Mono'">/workflow/:id</span></div>
-      <div style="background:var(--bg-card);padding:0.6rem 0.75rem;border:1px solid var(--border);display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.6rem;font-weight:500;padding:0.15rem 0.35rem;background:#166534;color:#86efac">GET</span><span style="font-size:0.7rem;font-family:'JetBrains Mono'">/workflows</span></div>
-      <div style="background:var(--bg-card);padding:0.6rem 0.75rem;border:1px solid var(--border);display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.6rem;font-weight:500;padding:0.15rem 0.35rem;background:#166534;color:#86efac">GET</span><span style="font-size:0.7rem;font-family:'JetBrains Mono'">/health</span></div>
+    <div class="section-header">
+      <span class="section-title">// ENDPOINTS</span>
+      <span class="section-count">[6]</span>
+    </div>
+    <div class="api-list">
+      <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/experts</span></div>
+      <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/experts/:slug</span></div>
+      <div class="api-item"><span class="api-method post">POST</span><span class="api-path">/ai/:expert</span></div>
+      <div class="api-item"><span class="api-method post">POST</span><span class="api-path">/workflow/:id</span></div>
+      <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/workflows</span></div>
+      <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/health</span></div>
     </div>
   </section>
 </Layout>
