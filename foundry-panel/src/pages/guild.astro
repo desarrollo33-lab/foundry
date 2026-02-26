@@ -1,0 +1,182 @@
+---
+// src/pages/guild.astro - The Guild (Expert Management)
+import { MCP_URL } from '../config';
+
+
+
+if (method === 'POST') {
+  const formData = await Astro.request.formData();
+  const action = formData.get('_action');
+  
+  if (action === 'create_expert') {
+    const name = formData.get('name');
+    const slug = formData.get('slug');
+    const title = formData.get('title');
+    const philosophy = formData.get('philosophy');
+    const color = formData.get('color');
+    
+    await fetch(`${MCP_URL}/experts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, slug, title, philosophy, color })
+    });
+    return Astro.redirect('/guild');
+  } else if (action === 'delete_expert') {
+    const expert_id = formData.get('expert_id');
+    await fetch(`${MCP_URL}/experts/${expert_id}`, { method: 'DELETE' });
+    return Astro.redirect('/guild');
+  }
+} else {
+  try {
+    const res = await fetch(`${MCP_URL}/experts`);
+    const data = await res.json();
+    experts = data.results || [];
+  } catch (e) { console.error(e); }
+}
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOUNDRY // GUILD</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #12151a; --bg-card: #1a1f26; --terminal-green: #4ade80; --terminal-green-dim: rgba(74, 222, 128, 0.2); --terminal-green-subtle: rgba(74, 222, 128, 0.1); --text: #e2e8f0; --text-dim: #94a3b8; --text-bright: #f1f5f9; --border: #2d3748; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { font-family: 'Share Tech Mono', 'JetBrains Mono', monospace; background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; overflow: hidden; }
+    body::before { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1) 1px, transparent 1px, transparent 2px); pointer-events: none; z-index: 1000; }
+    .layout { display: grid; grid-template-columns: 220px 1fr; height: 100vh; }
+    .sidebar { background: var(--bg-card); border-right: 1px solid var(--border); padding: 1.5rem 1rem; display: flex; flex-direction: column; }
+    .brand { padding-bottom: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+    .brand h1 { font-size: 1.25rem; font-weight: 400; color: var(--terminal-green); letter-spacing: 0.2em; }
+    .brand .version { font-size: 0.65rem; color: var(--text-dim); margin-top: 0.25rem; }
+    .nav { display: flex; flex-direction: column; gap: 0.25rem; }
+    .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; color: var(--text-dim); text-decoration: none; border: 1px solid transparent; transition: all 0.15s; }
+    .nav-item:hover { color: var(--text-bright); background: var(--bg); }
+    .nav-item.active { color: var(--terminal-green); background: var(--terminal-green-subtle); }
+    .nav-icon { font-size: 0.9rem; opacity: 0.7; width: 16px; text-align: center; }
+    .nav-label { font-size: 0.75rem; letter-spacing: 0.1em; }
+    .sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.65rem; color: var(--text-dim); }
+    .status-line { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
+    .status-dot { width: 6px; height: 6px; background: var(--terminal-green); border-radius: 50%; animation: blink 2s infinite; }
+    @keyframes blink { 0%, 50%, 100% { opacity: 1; } 25%, 75% { opacity: 0.3; } }
+    .main { padding: 1.5rem 2rem; overflow-y: auto; }
+    .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .header-title { font-size: 1rem; color: var(--text-bright); letter-spacing: 0.15em; }
+    .header-title span { color: var(--terminal-green); }
+    
+    .section { margin-bottom: 2rem; }
+    .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+    .section-title { font-size: 0.75rem; letter-spacing: 0.2em; color: var(--text-dim); }
+    .section-count { font-size: 0.65rem; color: var(--terminal-green); }
+    
+    .expert-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+    .expert { background: var(--bg-card); padding: 1.25rem; border: 1px solid var(--border); }
+    .expert-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+    .expert-avatar { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 500; border: 1px solid; border-radius: 50%; overflow: hidden; }
+    .expert-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .expert-info { flex: 1; }
+    .expert-name { font-size: 0.95rem; color: var(--text-bright); }
+    .expert-title { font-size: 0.65rem; color: var(--text-dim); }
+    .expert-slug { font-size: 0.7rem; color: var(--terminal-green); font-family: 'JetBrains Mono', monospace; margin-top: 0.5rem; display: block; }
+    .expert-details { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
+    .expert-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    .btn { padding: 0.5rem 1rem; font-size: 0.65rem; font-family: inherit; letter-spacing: 0.1em; background: transparent; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; text-decoration: none; transition: all 0.15s; }
+    .btn:hover { border-color: var(--terminal-green); color: var(--terminal-green); }
+    .btn.danger:hover { border-color: #f87171; color: #f87171; }
+    .btn.primary { background: var(--terminal-green-subtle); border-color: var(--terminal-green-dim); color: var(--terminal-green); }
+    
+    .form-toggle { margin-bottom: 1.5rem; }
+    .form-panel { background: var(--bg-card); border: 1px solid var(--border); padding: 1.5rem; display: none; }
+    .form-panel.active { display: block; }
+    .form-title { font-size: 0.75rem; letter-spacing: 0.15em; color: var(--terminal-green); margin-bottom: 1rem; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+    .form-group.full { grid-column: span 2; }
+    .form-group label { font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em; }
+    .form-group input { background: var(--bg); border: 1px solid var(--border); padding: 0.6rem; color: var(--text); font-family: inherit; font-size: 0.8rem; }
+    .form-group input:focus { outline: none; border-color: var(--terminal-green); }
+    .form-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
+    
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: fixed; bottom: 0; left: 0; right: 0; flex-direction: row; padding: 0.75rem; border-right: none; border-top: 1px solid var(--border); z-index: 100; }
+      .brand, .sidebar-footer { display: none; }
+      .nav { flex-direction: row; gap: 0; }
+      .nav-item { flex-direction: column; padding: 0.5rem; gap: 0.2rem; }
+      .nav-label { font-size: 0.55rem; }
+      .main { padding-bottom: 80px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand"><h1>FOUNDRY</h1><div class="version">v1.1.0 // TERMINAL</div></div>
+      <nav class="nav">
+        <a href="/" class="nav-item"><span class="nav-icon">▸</span><span class="nav-label">HORIZON</span></a>
+        <a href="/guild" class="nav-item active"><span class="nav-icon">▣</span><span class="nav-label">GUILD</span></a>
+        <a href="/forge" class="nav-item"><span class="nav-icon">⚙</span><span class="nav-label">FORGE</span></a>
+        <a href="/void" class="nav-item"><span class="nav-icon">▦</span><span class="nav-label">VOID</span></a>
+      </nav>
+      <div class="sidebar-footer"><div>SYSTEM ONLINE</div><div class="status-line"><span class="status-dot"></span><span>MCP ACTIVE</span></div></div>
+    </aside>
+    
+    <main class="main">
+      <header class="header">
+        <h2 class="header-title"><span>//</span> THE GUILD</h2>
+        <button class="btn primary" onclick="toggleForm()">+ NEW ARCHITECT</button>
+      </header>
+      
+      <div class="form-toggle">
+        <div id="formPanel" class="form-panel">
+          <div class="form-title">// NEW ARCHITECT</div>
+          <form method="POST">
+            <input type="hidden" name="_action" value="create_expert"/>
+            <div class="form-grid">
+              <div class="form-group"><label>NAME</label><input type="text" name="name" required placeholder="e.g. Nikola Tesla"/></div>
+              <div class="form-group"><label>SLUG</label><input type="text" name="slug" required placeholder="e.g. nikola-tesla"/></div>
+              <div class="form-group"><label>TITLE</label><input type="text" name="title" required placeholder="e.g. Physics Expert"/></div>
+              <div class="form-group"><label>COLOR</label><input type="text" name="color" placeholder="#FF6B35"/></div>
+              <div class="form-group full"><label>PHILOSOPHY</label><input type="text" name="philosophy" placeholder="Short quote"/></div>
+              <div class="form-actions"><button type="submit" class="btn primary">CREATE</button><button type="button" class="btn" onclick="toggleForm()">CANCEL</button></div>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <section class="section">
+        <div class="section-header"><span class="section-title">// ARCHITECTS</span><span class="section-count">[{experts.length}]</span></div>
+        <div class="expert-grid">
+          {experts.map((expert: any) => (
+            <article class="expert">
+              <div class="expert-header">
+              <div class="expert-avatar" style={`color:${expert.color};border-color:${expert.color}80`}>
+                  <img src={`/images/${expert.slug}.jpg`} alt={expert.name} onerror="this.style.display='none';this.parentElement.textContent=this.parentElement.textContent.trim()" />
+                  {expert.name.charAt(0)}
+                </div>
+                <div class="expert-info">
+                  <div class="expert-name">{expert.name}</div>
+                  <div class="expert-title">{expert.title}</div>
+                  <code class="expert-slug">/ai/{expert.slug}</code>
+                </div>
+              </div>
+              <div class="expert-details"><strong>Philosophy:</strong> {expert.philosophy || 'N/A'}</div>
+              <div class="expert-actions">
+                <a href={`/forge?expert=${expert.slug}`} class="btn">WFS</a>
+<form method="POST" style="flex:1"><input type="hidden" name="_action" value="delete_expert"/><input type="hidden" name="expert_id" value={expert.slug}><button type="submit" class="btn danger" style="width:100%">DELETE</button></form>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>function toggleForm() { document.getElementById('formPanel').classList.toggle('active'); }</script>
+</body>
+</html>

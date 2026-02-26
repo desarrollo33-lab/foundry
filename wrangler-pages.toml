@@ -1,0 +1,16 @@
+# Foundry Panel - Cloudflare Pages Configuration
+
+name = "foundry-panel"
+compatibility_date = "2024-11-08"
+
+[[d1_databases]]
+binding = "FOUNDRY_DB"
+database_name = "foundry-db"
+database_id = "c884943b-97df-403b-8fb8-184c94052a59"
+
+[site]
+bucket = "./dist"
+
+[build]
+command = "npm run build"
+cwd = "foundry-panel"

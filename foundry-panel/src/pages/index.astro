@@ -1,0 +1,244 @@
+---
+// src/pages/index.astro - The Horizon (Dashboard)
+import { MCP_URL } from '../config';
+
+let experts: any[] = [];
+let workflows: any[] = [];
+let projectsCount = 0;
+
+try {
+  const res = await fetch(`${MCP_URL}/experts`);
+  const data = await res.json();
+  experts = data.results || [];
+  
+  const wfRes = await fetch(`${MCP_URL}/workflows`);
+  const wfData = await wfRes.json();
+  workflows = wfData.results || [];
+  
+  // Fetch projects count
+  try {
+    const projRes = await fetch(`${MCP_URL}/api/v1/projects`);
+    if (projRes.ok) {
+      const projData = await projRes.json();
+      projectsCount = projData.results?.length || 0;
+    }
+  } catch {
+    // Projects endpoint may not exist, ignore
+  }
+} catch (e) {
+  console.error('Failed to fetch dashboard data:', e);
+}
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOUNDRY // TERMINAL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #12151a;
+      --bg-card: #1a1f26;
+      --terminal-green: #4ade80;
+      --terminal-green-dim: rgba(74, 222, 128, 0.2);
+      --terminal-green-subtle: rgba(74, 222, 128, 0.1);
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --text-bright: #f1f5f9;
+      --border: #2d3748;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    html, body { height: 100%; }
+    
+    body {
+      font-family: 'Share Tech Mono', 'JetBrains Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1) 1px, transparent 1px, transparent 2px);
+      pointer-events: none;
+      z-index: 1000;
+    }
+    
+    .layout { display: grid; grid-template-columns: 220px 1fr; height: 100vh; }
+    
+    .sidebar {
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      padding: 1.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .brand { padding-bottom: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+    .brand h1 { font-size: 1.25rem; font-weight: 400; color: var(--terminal-green); letter-spacing: 0.2em; }
+    .brand .version { font-size: 0.65rem; color: var(--text-dim); margin-top: 0.25rem; }
+    
+    .nav { display: flex; flex-direction: column; gap: 0.25rem; }
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      color: var(--text-dim);
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+    }
+    
+    .nav-item:hover { color: var(--text-bright); background: var(--bg); }
+    .nav-item.active { color: var(--terminal-green); background: var(--terminal-green-subtle); }
+    
+    .nav-icon { font-size: 0.9rem; opacity: 0.7; width: 16px; text-align: center; }
+    .nav-label { font-size: 0.75rem; letter-spacing: 0.1em; }
+    
+    .sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.65rem; color: var(--text-dim); }
+    .status-line { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
+    .status-dot { width: 6px; height: 6px; background: var(--terminal-green); border-radius: 50%; animation: blink 2s infinite; }
+    @keyframes blink { 0%, 50%, 100% { opacity: 1; } 25%, 75% { opacity: 0.3; } }
+    
+    .main { padding: 1.5rem 2rem; overflow-y: auto; }
+    
+    .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .header-title { font-size: 1rem; color: var(--text-bright); letter-spacing: 0.15em; }
+    .header-title span { color: var(--terminal-green); }
+    .header-meta { font-size: 0.7rem; color: var(--text-dim); }
+    
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .stat { background: var(--bg-card); padding: 1rem; border: 1px solid var(--border); }
+    .stat-value { font-size: 1.5rem; color: var(--terminal-green); font-weight: 400; }
+    .stat-label { font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.15em; margin-top: 0.25rem; }
+    
+    .section { margin-bottom: 2rem; }
+    .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+    .section-title { font-size: 0.75rem; letter-spacing: 0.2em; color: var(--text-dim); }
+    .section-count { font-size: 0.65rem; color: var(--terminal-green); }
+    
+    .expert-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .expert { background: var(--bg-card); padding: 1.25rem; border: 1px solid var(--border); transition: border-color 0.15s; }
+    .expert:hover { border-color: var(--terminal-green); }
+    .expert-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .expert-avatar { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 500; border: 1px solid; border-radius: 50%; overflow: hidden; }
+    .expert-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .expert-info { flex: 1; }
+    .expert-name { font-size: 0.9rem; color: var(--text-bright); }
+    .expert-title { font-size: 0.65rem; color: var(--text-dim); }
+    .expert-philosophy { font-size: 0.75rem; color: var(--text-dim); font-style: italic; margin: 0.75rem 0; padding-left: 0.75rem; border-left: 2px solid var(--border); }
+    .expert-endpoint { font-size: 0.7rem; color: var(--terminal-green); font-family: 'JetBrains Mono', monospace; }
+    .expert-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+    
+    .btn { padding: 0.4rem 0.75rem; font-size: 0.65rem; font-family: inherit; letter-spacing: 0.1em; background: transparent; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; text-decoration: none; text-align: center; transition: all 0.15s; }
+    .btn:hover { border-color: var(--terminal-green); color: var(--terminal-green); }
+    
+    .api-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; }
+    .api-item { background: var(--bg-card); padding: 0.6rem 0.75rem; border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem; }
+    .method { font-size: 0.6rem; font-weight: 500; padding: 0.15rem 0.35rem; letter-spacing: 0.05em; }
+    .method.get { background: #166534; color: #86efac; }
+    .method.post { background: #1e40af; color: #93c5fd; }
+    .path { font-size: 0.7rem; color: var(--text); font-family: 'JetBrains Mono', monospace; }
+    
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: fixed; bottom: 0; left: 0; right: 0; flex-direction: row; padding: 0.75rem; border-right: none; border-top: 1px solid var(--border); z-index: 100; }
+      .brand, .sidebar-footer { display: none; }
+      .nav { flex-direction: row; gap: 0; }
+      .nav-item { flex-direction: column; padding: 0.5rem; gap: 0.2rem; }
+      .nav-label { font-size: 0.55rem; }
+      .main { padding-bottom: 80px; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>FOUNDRY</h1>
+        <div class="version">v1.1.0 // TERMINAL</div>
+      </div>
+      <nav class="nav">
+        <a href="/" class="nav-item active"><span class="nav-icon">▸</span><span class="nav-label">HORIZON</span></a>
+        <a href="/guild" class="nav-item"><span class="nav-icon">▣</span><span class="nav-label">GUILD</span></a>
+        <a href="/forge" class="nav-item"><span class="nav-icon">⚙</span><span class="nav-label">FORGE</span></a>
+        <a href="/void" class="nav-item"><span class="nav-icon">▦</span><span class="nav-label">VOID</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <div>SYSTEM ONLINE</div>
+        <div class="status-line"><span class="status-dot"></span><span>MCP ACTIVE</span></div>
+      </div>
+    </aside>
+    
+    <main class="main">
+      <header class="header">
+        <h2 class="header-title"><span>//</span> THE HORIZON</h2>
+        <div class="header-meta">{new Date().toISOString().slice(0,19).replace('T', ' ')} UTC</div>
+      </header>
+      
+      <div class="stats">
+        <div class="stat"><div class="stat-value">{experts.length}</div><div class="stat-label">ARCHITECTS</div></div>
+        <div class="stat"><div class="stat-value">{workflows?.length || 0}</div><div class="stat-label">BLUEPRINTS</div></div>
+        <div class="stat"><div class="stat-value">{projectsCount}</div><div class="stat-label">PROJECTS</div></div>
+        <div class="stat"><div class="stat-value" style="color:#60a5fa">OK</div><div class="stat-label">STATUS</div></div>
+      </div>
+      
+      <section class="section">
+        <div class="section-header">
+          <span class="section-title">// THE GUILD</span>
+          <span class="section-count">[{experts.length}]</span>
+        </div>
+        <div class="expert-grid">
+          {experts.map((expert: any) => (
+            <article class="expert">
+              <div class="expert-header">
+                <div class="expert-avatar" style={`color:${expert.color};border-color:${expert.color}80`}>
+                  <img src={`/images/${expert.slug}.jpg`} alt={expert.name} onerror="this.style.display='none';this.parentElement.textContent=this.parentElement.textContent.trim()" />
+                  {expert.name.charAt(0)}
+                </div>
+                <div class="expert-info">
+                  <div class="expert-name">{expert.name}</div>
+                  <div class="expert-title">{expert.title}</div>
+                </div>
+              </div>
+              <div class="expert-philosophy">"{expert.philosophy}"</div>
+              <div class="expert-endpoint">/ai/{expert.slug}</div>
+              <div class="expert-actions">
+                <a href="/guild" class="btn">VIEW</a>
+                <a href={`/forge?expert=${expert.slug}`} class="btn">WFS</a>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+      
+      <section class="section">
+        <div class="section-header">
+          <span class="section-title">// ENDPOINTS</span>
+          <span class="section-count">[6]</span>
+        </div>
+        <div class="api-list">
+          <div class="api-item"><span class="method get">GET</span><span class="path">/experts</span></div>
+          <div class="api-item"><span class="method get">GET</span><span class="path">/experts/:slug</span></div>
+          <div class="api-item"><span class="method post">POST</span><span class="path">/ai/:expert</span></div>
+          <div class="api-item"><span class="method post">POST</span><span class="path">/workflow/:id</span></div>
+          <div class="api-item"><span class="method get">GET</span><span class="path">/workflows</span></div>
+          <div class="api-item"><span class="method get">GET</span><span class="path">/health</span></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
