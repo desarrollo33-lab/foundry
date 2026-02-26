@@ -1,7 +1,7 @@
 ---
 // src/pages/index.astro - The Horizon (Dashboard)
 import Layout from '../layouts/Layout.astro';
-import { MCP_URL, FALLBACK_EXPERTS, FALLBACK_WORKFLOWS } from '../config';
+import { MCP_URL, FALLBACK_EXPERTS, FALLBACK_WORKFLOWS, ENDPOINTS } from '../config';
 
 let experts = FALLBACK_EXPERTS;
 let workflows = FALLBACK_WORKFLOWS;
@@ -38,7 +38,7 @@ try {
         <article class="expert">
           <div class="expert-header">
             <div class="expert-avatar" style={`color:${expert.color};border-color:${expert.color}80`}>
-              <img src={`/images/${expert.slug}.jpg`} alt={expert.name} onerror="this.style.display='none';this.parentElement.textContent=this.parentElement.textContent.trim()" />
+              <img src={`${MCP_URL}${ENDPOINTS.IMAGE(expert.slug)}`} alt={expert.name} onerror="this.style.display='none';this.parentElement.textContent=this.parentElement.textContent.trim()" />
               {expert.name.charAt(0)}
             </div>
             <div class="expert-info">
