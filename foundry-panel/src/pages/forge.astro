@@ -1,13 +1,11 @@
 ---
 // src/pages/forge.astro - The Forge (Workflow Management)
-import { MCP_URL } from '../config';
+import { MCP_URL, FALLBACK_EXPERTS, FALLBACK_WORKFLOWS } from '../config';
 
-let experts: any[] = [];
-let workflows: any[] = [];
+let experts: any[] = FALLBACK_EXPERTS;
+let workflows: any[] = FALLBACK_WORKFLOWS;
 const url = Astro.url;
 const selectedExpert = url.searchParams.get('expert');
-
-
 const method = Astro.request.method;
 
 if (method === 'POST') {
@@ -36,12 +34,16 @@ if (method === 'POST') {
 } else {
   try {
     const expRes = await fetch(`${MCP_URL}/experts`);
-    const expData = await expRes.json();
-    experts = expData.results || [];
+    if (expRes.ok) {
+      const expData = await expRes.json();
+      if (expData.results?.length) experts = expData.results;
+    }
     
     const wfRes = await fetch(`${MCP_URL}/workflows${selectedExpert ? `?expert_id=${selectedExpert}` : ''}`);
-    const wfData = await wfRes.json();
-    workflows = wfData.results || [];
+    if (wfRes.ok) {
+      const wfData = await wfRes.json();
+      if (wfData.results?.length) workflows = wfData.results;
+    }
   } catch (e) { console.error(e); }
 }
 ---
@@ -78,12 +80,10 @@ if (method === 'POST') {
     .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
     .header-title { font-size: 1rem; color: var(--text-bright); letter-spacing: 0.15em; }
     .header-title span { color: var(--terminal-green); }
-    
     .filters { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
     .filter-btn { padding: 0.4rem 0.75rem; font-size: 0.65rem; font-family: inherit; letter-spacing: 0.1em; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); text-decoration: none; transition: all 0.15s; }
     .filter-btn:hover, .filter-btn.active { border-color: var(--terminal-green); color: var(--terminal-green); }
     .filter-btn.active { background: var(--terminal-green-subtle); }
-    
     .workflow-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
     .workflow { background: var(--bg-card); padding: 1rem; border: 1px solid var(--border); }
     .workflow-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
@@ -98,12 +98,10 @@ if (method === 'POST') {
     .workflow-endpoint { font-size: 0.6rem; color: var(--text-dim); margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
     .workflow-endpoint code { color: var(--terminal-green); }
     .workflow-actions { margin-top: 0.75rem; }
-    
     .btn { padding: 0.4rem 0.75rem; font-size: 0.65rem; font-family: inherit; letter-spacing: 0.1em; background: transparent; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; transition: all 0.15s; }
     .btn:hover { border-color: var(--terminal-green); color: var(--terminal-green); }
     .btn.danger:hover { border-color: #f87171; color: #f87171; }
     .btn.primary { background: var(--terminal-green-subtle); border-color: var(--terminal-green-dim); color: var(--terminal-green); }
-    
     .form-toggle { margin-bottom: 1.5rem; }
     .form-panel { background: var(--bg-card); border: 1px solid var(--border); padding: 1.5rem; display: none; }
     .form-panel.active { display: block; }
@@ -116,7 +114,6 @@ if (method === 'POST') {
     .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--terminal-green); }
     .form-group textarea { min-height: 80px; resize: vertical; }
     .form-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
-    
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
       .sidebar { position: fixed; bottom: 0; left: 0; right: 0; flex-direction: row; padding: 0.75rem; border-right: none; border-top: 1px solid var(--border); z-index: 100; }

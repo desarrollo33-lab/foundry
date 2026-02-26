@@ -1,8 +1,9 @@
 ---
 // src/pages/guild.astro - The Guild (Expert Management)
-import { MCP_URL } from '../config';
+import { MCP_URL, FALLBACK_EXPERTS } from '../config';
 
-
+let experts: any[] = FALLBACK_EXPERTS;
+const method = Astro.request.method;
 
 if (method === 'POST') {
   const formData = await Astro.request.formData();
@@ -29,8 +30,10 @@ if (method === 'POST') {
 } else {
   try {
     const res = await fetch(`${MCP_URL}/experts`);
-    const data = await res.json();
-    experts = data.results || [];
+    if (res.ok) {
+      const data = await res.json();
+      if (data.results?.length) experts = data.results;
+    }
   } catch (e) { console.error(e); }
 }
 ---
@@ -67,12 +70,10 @@ if (method === 'POST') {
     .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
     .header-title { font-size: 1rem; color: var(--text-bright); letter-spacing: 0.15em; }
     .header-title span { color: var(--terminal-green); }
-    
     .section { margin-bottom: 2rem; }
     .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
     .section-title { font-size: 0.75rem; letter-spacing: 0.2em; color: var(--text-dim); }
     .section-count { font-size: 0.65rem; color: var(--terminal-green); }
-    
     .expert-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
     .expert { background: var(--bg-card); padding: 1.25rem; border: 1px solid var(--border); }
     .expert-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
@@ -88,7 +89,6 @@ if (method === 'POST') {
     .btn:hover { border-color: var(--terminal-green); color: var(--terminal-green); }
     .btn.danger:hover { border-color: #f87171; color: #f87171; }
     .btn.primary { background: var(--terminal-green-subtle); border-color: var(--terminal-green-dim); color: var(--terminal-green); }
-    
     .form-toggle { margin-bottom: 1.5rem; }
     .form-panel { background: var(--bg-card); border: 1px solid var(--border); padding: 1.5rem; display: none; }
     .form-panel.active { display: block; }
@@ -100,7 +100,6 @@ if (method === 'POST') {
     .form-group input { background: var(--bg); border: 1px solid var(--border); padding: 0.6rem; color: var(--text); font-family: inherit; font-size: 0.8rem; }
     .form-group input:focus { outline: none; border-color: var(--terminal-green); }
     .form-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
-    
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
       .sidebar { position: fixed; bottom: 0; left: 0; right: 0; flex-direction: row; padding: 0.75rem; border-right: none; border-top: 1px solid var(--border); z-index: 100; }
@@ -169,7 +168,7 @@ if (method === 'POST') {
               <div class="expert-details"><strong>Philosophy:</strong> {expert.philosophy || 'N/A'}</div>
               <div class="expert-actions">
                 <a href={`/forge?expert=${expert.slug}`} class="btn">WFS</a>
-<form method="POST" style="flex:1"><input type="hidden" name="_action" value="delete_expert"/><input type="hidden" name="expert_id" value={expert.slug}><button type="submit" class="btn danger" style="width:100%">DELETE</button></form>
+                <form method="POST" style="flex:1"><input type="hidden" name="_action" value="delete_expert"/><input type="hidden" name="expert_id" value={expert.slug}><button type="submit" class="btn danger" style="width:100%">DELETE</button></form>
               </div>
             </article>
           ))}

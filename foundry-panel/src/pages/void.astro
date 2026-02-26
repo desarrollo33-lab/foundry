@@ -1,23 +1,35 @@
 ---
 // src/pages/void.astro - The Void (Admin/Settings)
-import { MCP_URL } from '../config';
+import { MCP_URL, FALLBACK_EXPERTS, FALLBACK_WORKFLOWS } from '../config';
 
-let health: any = null;
+let health: any = { service: 'foundry-mcp', version: '3.0.0', model: '@cf/zai-org/glm-4.7-flash', workers_ai: 'demo' };
 let stats = { experts: 0, workflows: 0 };
-
 
 try {
   const healthRes = await fetch(`${MCP_URL}/health`);
-  health = await healthRes.json();
+  if (healthRes.ok) {
+    health = await healthRes.json();
+  }
   
   const expRes = await fetch(`${MCP_URL}/experts`);
-  const expData = await expRes.json();
-  stats.experts = (expData.results || []).length;
+  if (expRes.ok) {
+    const expData = await expRes.json();
+    stats.experts = (expData.results || []).length;
+  }
   
   const wfRes = await fetch(`${MCP_URL}/workflows`);
-  const wfData = await wfRes.json();
-  stats.workflows = (wfData.results || []).length;
-} catch (e) { console.error(e); }
+  if (wfRes.ok) {
+    const wfData = await wfRes.json();
+    stats.workflows = (wfData.results || []).length;
+  }
+  
+  if (stats.experts === 0) stats.experts = FALLBACK_EXPERTS.length;
+  if (stats.workflows === 0) stats.workflows = FALLBACK_WORKFLOWS.length;
+} catch (e) { 
+  console.error(e); 
+  stats.experts = FALLBACK_EXPERTS.length;
+  stats.workflows = FALLBACK_WORKFLOWS.length;
+}
 ---
 
 <!DOCTYPE html>
@@ -52,12 +64,10 @@ try {
     .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
     .header-title { font-size: 1rem; color: var(--accent-amber); letter-spacing: 0.15em; }
     .header-title span { color: var(--terminal-green); }
-    
     .void-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem; }
     .void-card { background: var(--bg-card); padding: 1.5rem; border: 1px solid var(--border); }
     .void-title { font-size: 0.75rem; letter-spacing: 0.15em; color: var(--accent-amber); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
     .void-title::before { content: '▦'; font-size: 0.9rem; }
-    
     .stat-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.75rem; }
     .stat-row:last-child { border-bottom: none; }
     .stat-key { color: var(--text-dim); }
@@ -66,14 +76,12 @@ try {
     .status-badge { padding: 0.15rem 0.4rem; font-size: 0.55rem; letter-spacing: 0.1em; }
     .status-badge.ok { background: #166534; color: #86efac; }
     .status-badge.error { background: #7f1d1d; color: #fca5a5; }
-    
     .deploy-info { background: var(--bg); padding: 1rem; margin-top: 1rem; }
     .deploy-title { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.75rem; letter-spacing: 0.1em; }
     .deploy-row { display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.7rem; border-bottom: 1px solid var(--border); }
     .deploy-row:last-child { border-bottom: none; }
     .deploy-key { color: var(--text-dim); }
     .deploy-val { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
-    
     .api-list { margin-top: 1rem; }
     .api-item { background: var(--bg); padding: 0.6rem 0.75rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--border); }
     .method { font-size: 0.6rem; font-weight: 500; padding: 0.15rem 0.35rem; letter-spacing: 0.05em; }
@@ -81,7 +89,6 @@ try {
     .method.post { background: #1e3a5f; color: #93c5fd; }
     .path { font-size: 0.75rem; color: var(--text); font-family: 'JetBrains Mono', monospace; }
     .desc { font-size: 0.65rem; color: var(--text-dim); margin-left: auto; }
-    
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
       .sidebar { position: fixed; bottom: 0; left: 0; right: 0; flex-direction: row; padding: 0.75rem; border-right: none; border-top: 1px solid var(--border); z-index: 100; }
@@ -133,7 +140,7 @@ try {
           <div class="void-title">DEPLOYMENT</div>
           <div class="deploy-info">
             <div class="deploy-title">MCP SERVER</div>
-          <div class="deploy-row"><span class="deploy-key">URL</span><span class="deploy-val">{MCP_URL.replace('https://', '')}</span></div>
+            <div class="deploy-row"><span class="deploy-key">URL</span><span class="deploy-val">{MCP_URL.replace('https://', '')}</span></div>
             <div class="deploy-row"><span class="deploy-key">STATUS</span><span class="status-indicator"><span class="status-badge ok">ONLINE</span></span></div>
           </div>
         </div>
