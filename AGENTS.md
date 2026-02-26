@@ -1,6 +1,7 @@
 # PROJECT KNOWLEDGE BASE
 
 **Generated:** 2026-02-26
+**Commit:** 2eb7d4d
 **Commit:** 1f15a0c
 **Branch:** main
 
@@ -68,7 +69,10 @@ npx wrangler d1 execute foundry-db --file=migrations/v1_add_stocks_and_mcp.sql -
 ```
 
 ## NOTES
-
+- MCP worker: `foundry-mcp.oficinadesarrollo33.workers.dev`
+- Panel: `*.foundry-panel.pages.dev`
+- Database: D1 `foundry-db` (c884943b-97df-403b-8fb8-184c94052a59)
+- Images served from R2 via `/images/:slug.jpg` endpoint
 - MCP worker: `foundry-mcp.oficinadesarrollo33.workers.dev`
 - Panel: `*.foundry-panel.pages.dev`
 - Database: D1 `foundry-db` (c884943b-97df-403b-8fb8-184c94052a59)
