@@ -36,3 +36,4 @@ coverage/
 .pages/
 functions/
 _worker.js/
+foundry-moltworker/
