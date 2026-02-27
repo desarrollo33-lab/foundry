@@ -35,6 +35,10 @@ export const ENDPOINTS = {
   WORKFLOW_BY_ID: (id: string) => `/workflows/${id}`,
   HEALTH: '/health',
   IMAGE: (slug: string) => `/images/${slug}.jpg`,
+  PROJECTS: '/api/v1/projects',
+  PROJECT_BY_SLUG: (slug: string) => `/api/v1/projects/${slug}`,
+  PROJECT_EXPERTS: (projectSlug: string) => `/api/v1/projects/${projectSlug}/experts`,
+  PROJECT_EXPERT_BY_ID: (projectSlug: string, expertId: string) => `/api/v1/projects/${projectSlug}/experts/${expertId}`,
 } as const;
 
 export type Endpoint = typeof ENDPOINTS[keyof typeof ENDPOINTS];

@@ -1,36 +1,111 @@
 ---
-// src/pages/forge.astro - The Forge (Workflow Management)
+// src/pages/forge.astro - The Forge (Project Workflow Management)
 import Layout from '../layouts/Layout.astro';
-import { MCP_URL, FALLBACK_EXPERTS, FALLBACK_WORKFLOWS } from '../config';
+import { MCP_URL, FALLBACK_EXPERTS, ENDPOINTS } from '../config';
 
 let experts: any[] = FALLBACK_EXPERTS;
-let workflows: any[] = FALLBACK_WORKFLOWS;
+let projects: any[] = [];
+let projectExperts: any[] = [];
+let projectWorkflows: any[] = [];
 const url = Astro.url;
-const selectedExpert = url.searchParams.get('expert');
+const selectedProject = url.searchParams.get('project');
+const editingWorkflow = url.searchParams.get('edit_workflow');
 const method = Astro.request.method;
 
+// Fetch projects
+try {
+  const projRes = await fetch(`${MCP_URL}/api/v1/projects`);
+  if (projRes.ok) {
+    const projData = await projRes.json();
+    if (projData.results?.length) projects = projData.results;
+  }
+} catch (e) { console.error('Projects fetch error:', e); }
+
+// Handle form submissions
 if (method === 'POST') {
   const formData = await Astro.request.formData();
   const action = formData.get('_action');
   
   if (action === 'create_workflow') {
-    const expert_id = formData.get('expert_id');
+    const project_id = formData.get('project_id');
     const name = formData.get('name');
     const description = formData.get('description');
-    const prompt_template = formData.get('prompt_template');
-    const input_type = formData.get('input_type');
-    const output_type = formData.get('output_type');
     
-    await fetch(`${MCP_URL}/workflows`, {
+    const steps: any[] = [];
+    const stepCount = parseInt(formData.get('step_count') as string || '0');
+    for (let i = 0; i < stepCount; i++) {
+      const expert_id = formData.get('step_expert_' + i);
+      const prompt_template = formData.get('step_prompt_' + i);
+      const output_type = formData.get('step_output_' + i);
+      if (expert_id) {
+        steps.push({
+          order: i + 1,
+          expert_id: expert_id,
+          prompt_template: prompt_template || '{input}',
+          output_type: output_type || 'text'
+        });
+      }
+    }
+    
+    await fetch(`${MCP_URL}/api/v1/projects/${project_id}/workflows`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ expert_id, name, description, prompt_template, input_type, output_type })
+      body: JSON.stringify({ project_id, name, description, steps })
     });
-    return Astro.redirect('/forge');
-  } else if (action === 'delete_workflow') {
+    return Astro.redirect(`/forge?project=${project_id}`);
+    
+  } else if (action === 'update_workflow') {
+    const project_id = formData.get('project_id');
     const workflow_id = formData.get('workflow_id');
-    await fetch(`${MCP_URL}/workflows/${workflow_id}`, { method: 'DELETE' });
-    return Astro.redirect('/forge');
+    const name = formData.get('name');
+    const description = formData.get('description');
+    
+    const steps: any[] = [];
+    const stepCount = parseInt(formData.get('step_count') as string || '0');
+    for (let i = 0; i < stepCount; i++) {
+      const expert_id = formData.get('step_expert_' + i);
+      const prompt_template = formData.get('step_prompt_' + i);
+      const output_type = formData.get('step_output_' + i);
+      if (expert_id) {
+        steps.push({
+          order: i + 1,
+          expert_id: expert_id,
+          prompt_template: prompt_template || '{input}',
+          output_type: output_type || 'text'
+        });
+      }
+    }
+    
+    await fetch(`${MCP_URL}/api/v1/projects/${project_id}/workflows/${workflow_id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description, steps })
+    });
+    return Astro.redirect(`/forge?project=${project_id}`);
+    
+  } else if (action === 'delete_workflow') {
+    const project_id = formData.get('project_id');
+    const workflow_id = formData.get('workflow_id');
+    await fetch(`${MCP_URL}/api/v1/projects/${project_id}/workflows/${workflow_id}`, { method: 'DELETE' });
+    return Astro.redirect(`/forge?project=${project_id}`);
+    
+  } else if (action === 'execute_workflow') {
+    const project_id = formData.get('project_id');
+    const workflow_id = formData.get('workflow_id');
+    const input_val = formData.get('input');
+    
+    try {
+      const execRes = await fetch(`${MCP_URL}/api/v1/projects/${project_id}/workflows/${workflow_id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: input_val })
+      });
+      if (execRes.ok) {
+        const result = await execRes.json();
+        console.log('Workflow result:', result);
+      }
+    } catch (e) { console.error('Execution error:', e); }
+    return Astro.redirect(`/forge?project=${project_id}`);
   }
 } else {
   try {
@@ -39,64 +114,244 @@ if (method === 'POST') {
       const expData = await expRes.json();
       if (expData.results?.length) experts = expData.results;
     }
+  } catch (e) { console.error('Experts fetch error:', e); }
+  
+  if (selectedProject) {
+    try {
+      const peRes = await fetch(`${MCP_URL}/api/v1/projects/${selectedProject}/experts`);
+      if (peRes.ok) {
+        const peData = await peRes.json();
+        if (peData.results?.length) projectExperts = peData.results;
+      }
+    } catch (e) { console.error('Project experts fetch error:', e); }
     
-    const wfRes = await fetch(`${MCP_URL}/workflows${selectedExpert ? `?expert_id=${selectedExpert}` : ''}`);
-    if (wfRes.ok) {
-      const wfData = await wfRes.json();
-      if (wfData.results?.length) workflows = wfData.results;
-    }
-  } catch (e) { console.error(e); }
+    try {
+      const wfRes = await fetch(`${MCP_URL}/api/v1/projects/${selectedProject}/workflows`);
+      if (wfRes.ok) {
+        const wfData = await wfRes.json();
+        if (wfData.results?.length) projectWorkflows = wfData.results;
+      }
+    } catch (e) { console.error('Project workflows fetch error:', e); }
+  }
+}
+
+let editingWorkflowData = null;
+if (editingWorkflow && selectedProject) {
+  try {
+    const editWfRes = await fetch(`${MCP_URL}/api/v1/projects/${selectedProject}/workflows/${editingWorkflow}`);
+    if (editWfRes.ok) editingWorkflowData = await editWfRes.json();
+  } catch (e) { console.error('Edit workflow fetch error:', e); }
+}
+
+function getSteps(wf: any): any[] {
+  try { return typeof wf.steps === 'string' ? JSON.parse(wf.steps) : (wf.steps || []); }
+  catch { return []; }
 }
 ---
 
 <Layout title="FORGE" activePage="forge">
   <header class="header">
     <h2 class="header-title"><span>//</span> THE FORGE</h2>
-    <button class="btn primary" onclick="toggleForm()">+ NEW BLUEPRINT</button>
+    <a href="/guild" class="btn">GUILD</a>
   </header>
   
-  <div class="filters">
-    <a href="/forge" class={`filter-btn ${!selectedExpert ? 'active' : ''}`}>[ALL]</a>
-    {experts.map((exp: any) => (
-      <a href={`/forge?expert=${exp.slug}`} class={`filter-btn ${selectedExpert === exp.slug ? 'active' : ''}`}>{exp.name}</a>
-    ))}
+  <div class="project-selector">
+    <label>// SELECT PROJECT</label>
+    <select onchange="window.location.href='/forge?project=' + this.value">
+      <option value="">-- SELECT PROJECT --</option>
+      {projects.map((proj: any) => (
+        <option value={proj.slug} selected={selectedProject === proj.slug}>{proj.name}</option>
+      ))}
+    </select>
   </div>
   
-  <div class="form-toggle">
-    <div id="formPanel" class="form-panel">
-      <div class="form-title">// NEW WORKFLOW BLUEPRINT</div>
-      <form method="POST">
-        <input type="hidden" name="_action" value="create_workflow"/>
-        <div class="form-grid">
-          <div class="form-group"><label>EXPERT</label><select name="expert_id" required><option value="">-- SELECT --</option>{experts.map((exp: any) => (<option value={exp.slug}>{exp.name}</option>))}</select></div>
-          <div class="form-group"><label>NAME</label><input type="text" name="name" required placeholder="e.g. Code Review"/></div>
-          <div class="form-group full"><label>DESCRIPTION</label><input type="text" name="description" placeholder="What this workflow does"/></div>
-          <div class="form-group full"><label>PROMPT TEMPLATE</label><textarea name="prompt_template" required placeholder="Use {input} for user input..."></textarea></div>
-          <div class="form-group"><label>INPUT TYPE</label><select name="input_type"><option value="text">text</option><option value="code">code</option><option value="audit">audit</option><option value="file">file</option></select></div>
-          <div class="form-group"><label>OUTPUT TYPE</label><select name="output_type"><option value="code">code</option><option value="audit">audit</option><option value="brief">brief</option><option value="report">report</option></select></div>
-          <div class="form-actions"><button type="submit" class="btn primary">CREATE</button><button type="button" class="btn" onclick="toggleForm()">CANCEL</button></div>
+  {selectedProject && projectExperts.length > 0 && (
+    <>
+      <div class="section-header">
+        <span class="section-title">// PROJECT WORKFLOWS</span>
+        <button class="btn primary" onclick="toggleWorkflowForm()">+ NEW WORKFLOW</button>
+      </div>
+      
+      <div class="form-toggle">
+        <div id="workflowFormPanel" class="form-panel">
+          <div class="form-title">{editingWorkflowData ? '// EDIT WORKFLOW' : '// NEW WORKFLOW'}</div>
+          <form method="POST">
+            <input type="hidden" name="_action" value={editingWorkflowData ? 'update_workflow' : 'create_workflow'}/>
+            <input type="hidden" name="project_id" value={selectedProject}/>
+            {editingWorkflowData && <input type="hidden" name="workflow_id" value={editingWorkflow}/>}
+            <div class="form-grid">
+              <div class="form-group"><label>NAME</label><input type="text" name="name" value={editingWorkflowData?.name || ''} placeholder="Workflow name" required/></div>
+              <div class="form-group"><label>DESCRIPTION</label><input type="text" name="description" value={editingWorkflowData?.description || ''} placeholder="What this does"/></div>
+              
+              <div class="form-group full">
+                <label>STEPS</label>
+                <div class="steps-container" id="stepsContainer">
+                  {(() => {
+                    const existingSteps = editingWorkflowData ? getSteps(editingWorkflowData) : [];
+                    return existingSteps.map((step: any, idx: number) => (
+                      <div class="step-row">
+                        <span class="step-num">{idx + 1}</span>
+                        <select name={'step_expert_' + idx} class="step-expert">
+                          <option value="">-- SELECT EXPERT --</option>
+                          {projectExperts.map((exp: any) => (
+                            <option value={exp.id} selected={step.expert_id === exp.id}>{exp.name || exp.global_name}</option>
+                          ))}
+                        </select>
+                        <input type="text" name={'step_prompt_' + idx} class="step-prompt" value={step.prompt_template || '{input}'}/>
+                        <select name={'step_output_' + idx} class="step-output">
+                          <option value="text" selected={step.output_type === 'text'}>text</option>
+                          <option value="code" selected={step.output_type === 'code'}>code</option>
+                          <option value="json" selected={step.output_type === 'json'}>json</option>
+                        </select>
+                        <button type="button" class="btn danger" onclick="this.parentElement.remove()">x</button>
+                      </div>
+                    ));
+                  })()}
+                </div>
+                <input type="hidden" name="step_count" id="stepCount" value={editingWorkflowData ? getSteps(editingWorkflowData).length : 0}/>
+                <button type="button" class="btn" onclick="addStep()">+ ADD STEP</button>
+              </div>
+
+              <div class="form-actions">
+              
+              <div class="form-actions">
+                <button type="submit" class="btn primary">{editingWorkflowData ? 'UPDATE' : 'CREATE'}</button>
+                {editingWorkflowData && <a href={'/forge?project=' + selectedProject} class="btn">CANCEL</a>}
+                {!editingWorkflowData && <button type="button" class="btn" onclick="toggleWorkflowForm()">CANCEL</button>}
+              </div>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
+      
+      <div class="workflows-grid">
+        {projectWorkflows.length === 0 && <div class="empty-state">No workflows yet. Create one above!</div>}
+        {projectWorkflows.map((wf: any) => {
+          const steps = getSteps(wf);
+          return (
+            <article class="project-workflow">
+              <div class="workflow-header">
+                <div class="workflow-name">{wf.name}</div>
+                <div class="workflow-badges"><span class="badge">{steps.length} step{steps.length !== 1 ? 's' : ''}</span></div>
+              </div>
+              <div class="workflow-desc">{wf.description || 'No description'}</div>
+              <div class="workflow-steps">
+                {steps.length > 0 ? steps.map((step: any, idx: number) => (
+                  <div class="step-item"><span class="step-order">{idx + 1}</span><span class="step-expert-name">{step.expert_id}</span></div>
+                )) : <span class="no-steps">No steps</span>}
+              </div>
+              <div class="workflow-actions">
+                <a href={'/forge?project=' + selectedProject + '&edit_workflow=' + wf.id} class="btn">EDIT</a>
+                <form method="POST">
+                  <input type="hidden" name="_action" value="execute_workflow"/>
+                  <input type="hidden" name="project_id" value={selectedProject}/>
+                  <input type="hidden" name="workflow_id" value={wf.id}/>
+                  <input type="text" name="input" placeholder="Input..." class="input-field"/>
+                  <button type="submit" class="btn primary">RUN</button>
+                </form>
+                <form method="POST">
+                  <input type="hidden" name="_action" value="delete_workflow"/>
+                  <input type="hidden" name="project_id" value={selectedProject}/>
+                  <input type="hidden" name="workflow_id" value={wf.id}/>
+                  <button type="submit" class="btn danger">DELETE</button>
+                </form>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </>
+  )}
+  
+  {selectedProject && projectExperts.length === 0 && (
+    <div class="empty-state">
+      <p>No experts in this project.</p>
+      <p>Add experts in Guild, then return here to create workflows.</p>
     </div>
-  </div>
+  )}
   
-  <div class="workflow-grid">
-    {workflows.map((wf: any) => (
-      <article class="workflow">
-        <div class="workflow-header">
-          <div class="workflow-name">{wf.name}</div>
-          <div class="workflow-badges"><span class="badge input">{wf.input_type}</span><span class="badge output">→ {wf.output_type}</span></div>
-        </div>
-        <div class="workflow-expert">ARCHITECT: {wf.expert_name}</div>
-        <div class="workflow-desc">{wf.description || 'No description'}</div>
-        <div class="workflow-prompt">{wf.prompt_template}</div>
-        <div class="workflow-endpoint">/workflow/{wf.id}</div>
-        <div class="workflow-actions">
-          <form method="POST"><input type="hidden" name="_action" value="delete_workflow"/><input type="hidden" name="workflow_id" value={wf.id}/><button type="submit" class="btn danger">DELETE</button></form>
-        </div>
-      </article>
-    ))}
-  </div>
+  {!selectedProject && (
+    <div class="empty-state">
+      <p>Select a project above to manage workflows.</p>
+      <p>Workflows chain project experts together.</p>
+    </div>
+  )}
 </Layout>
 
-<script>function toggleForm() { document.getElementById('formPanel').classList.toggle('active'); }</script>
+<script>
+function toggleWorkflowForm() { document.getElementById('workflowFormPanel').classList.toggle('active'); }
+
+var stepCounter = parseInt(document.getElementById('stepCount') ? document.getElementById('stepCount').value : '0');
+
+function addStep() {
+  var container = document.getElementById('stepsContainer');
+  var row = document.createElement('div');
+  row.className = 'step-row';
+  
+  var optionsHtml = '<option value="">-- SELECT EXPERT --</option>';
+  var existingSelect = container.querySelector('.step-expert');
+  if (existingSelect) {
+    var opts = existingSelect.querySelectorAll('option');
+    for (var i = 0; i < opts.length; i++) {
+      if (opts[i].value) {
+        optionsHtml += '<option value="' + opts[i].value + '">' + opts[i].textContent + '</option>';
+      }
+    }
+  }
+  
+  row.innerHTML = '<span class="step-num">' + (stepCounter + 1) + '</span>' +
+    '<select name="step_expert_' + stepCounter + '" class="step-expert">' + optionsHtml + '</select>' +
+    '<input type="text" name="step_prompt_' + stepCounter + '" class="step-prompt" value="{input}"/>' +
+    '<select name="step_output_' + stepCounter + '" class="step-output">' +
+    '<option value="text">text</option>' +
+    '<option value="code">code</option>' +
+    '<option value="json">json</option>' +
+    '</select>' +
+    '<button type="button" class="btn danger" onclick="this.parentElement.remove()">x</button>';
+  
+  container.appendChild(row);
+  stepCounter++;
+  document.getElementById('stepCount').value = stepCounter;
+}
+</script>
+
+<style>
+  .project-selector { margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem; }
+  .project-selector label { font-family: var(--font-mono); color: var(--color-dim); font-size: 0.75rem; }
+  .project-selector select { flex: 1; max-width: 400px; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text); padding: 0.5rem 1rem; font-family: var(--font-mono); }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--color-border); }
+  .section-title { font-family: var(--font-mono); color: var(--color-dim); font-size: 0.75rem; }
+  .form-toggle { margin-bottom: 1.5rem; }
+  .form-panel { display: none; background: var(--color-bg); border: 1px solid var(--color-border); padding: 1.5rem; }
+  .form-panel.active { display: block; }
+  .form-title { font-family: var(--font-mono); color: var(--color-accent); margin-bottom: 1rem; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label { display: block; font-family: var(--font-mono); color: var(--color-dim); font-size: 0.7rem; margin-bottom: 0.25rem; }
+  .form-group input, .form-group select { width: 100%; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text); padding: 0.5rem; font-family: var(--font-mono); font-size: 0.8rem; }
+  .form-actions { grid-column: 1 / -1; display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+  .workflows-grid { display: grid; gap: 1rem; }
+  .project-workflow { background: var(--color-bg); border: 1px solid var(--color-border); padding: 1rem; }
+  .workflow-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+  .workflow-name { font-weight: bold; }
+  .workflow-badges { display: flex; gap: 0.5rem; }
+  .badge { font-family: var(--font-mono); font-size: 0.65rem; padding: 0.25rem 0.5rem; background: var(--color-border); border-radius: 4px; }
+  .workflow-desc { font-size: 0.8rem; color: var(--color-dim); margin-bottom: 0.75rem; }
+  .workflow-steps { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+  .step-item { display: flex; align-items: center; gap: 0.25rem; background: var(--color-border); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-family: var(--font-mono); }
+  .step-order { color: var(--color-dim); }
+  .no-steps { font-size: 0.75rem; color: var(--color-dim); font-style: italic; }
+  .workflow-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .workflow-actions form { display: flex; gap: 0.5rem; flex: 1; }
+  .input-field { flex: 1; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text); padding: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; }
+  .empty-state { text-align: center; padding: 3rem; color: var(--color-dim); font-family: var(--font-mono); }
+  .btn { padding: 0.5rem 1rem; font-family: var(--font-mono); font-size: 0.75rem; cursor: pointer; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text); text-decoration: none; display: inline-block; }
+  .btn.primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-bg); }
+  .btn.danger { border-color: var(--color-danger); color: var(--color-danger); }
+  .steps-container { margin-bottom: 0.5rem; }
+  .step-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+  .step-num { font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-dim); width: 24px; }
+  .step-expert { flex: 2; }
+  .step-prompt { flex: 3; }
+  .step-output { flex: 1; }
+</style>
