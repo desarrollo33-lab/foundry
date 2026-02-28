@@ -39,6 +39,13 @@ export const ENDPOINTS = {
   PROJECT_BY_SLUG: (slug: string) => `/api/v1/projects/${slug}`,
   PROJECT_EXPERTS: (projectSlug: string) => `/api/v1/projects/${projectSlug}/experts`,
   PROJECT_EXPERT_BY_ID: (projectSlug: string, expertId: string) => `/api/v1/projects/${projectSlug}/experts/${expertId}`,
-} as const;
-
-export type Endpoint = typeof ENDPOINTS[keyof typeof ENDPOINTS];
+  STUDIO_CHAT: '/studio/chat',
+  STUDIO_EXECUTE: '/studio/execute',
+  CLAW_EXECUTE: '/claw/execute',
+  // Component endpoints
+  COMPONENTS: '/api/v1/components',
+  COMPONENT_BY_ID: (id: string) => `/api/v1/components/${id}`,
+  COMPONENT_TRANSFORM: '/api/v1/components/transform',
+  COMPONENT_TEMPLATES: '/api/v1/components/templates',
+  COMPONENT_APPROVE: (id: string) => `/api/v1/components/${id}/approve`,
+};

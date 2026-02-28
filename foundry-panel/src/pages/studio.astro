@@ -1,0 +1,14 @@
+---
+// src/pages/studio.astro - STUDIO (Code Workspace)
+import Layout from '../layouts/Layout.astro';
+import { StudioIsland } from '../components/studio/StudioIsland';
+---
+
+<Layout title="STUDIO" activePage="studio">
+  <header class="header">
+    <h2 class="header-title"><span>//</span> STUDIO</h2>
+    <span class="header-meta">Code Workspace</span>
+  </header>
+  
+  <StudioIsland client:only="react" />
+</Layout>
